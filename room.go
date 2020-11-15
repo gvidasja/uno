@@ -27,6 +27,8 @@ func (room *Room) IsEmpty() bool {
 }
 
 func (room *Room) run() {
+	uno := NewUno()
+
 	for {
 		select {
 		case c := <-room.connect:
@@ -43,7 +45,8 @@ func (room *Room) run() {
 			}
 
 		case action := <-room.receive:
-			log.Println("received", action)
+			update := uno.Update(action)
+			room.broadcast <- update
 		case update := <-room.broadcast:
 			for c := range room.connections {
 				c.send <- update
