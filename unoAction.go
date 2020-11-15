@@ -5,10 +5,12 @@ const (
 	unoActionRemovePlayer = "REMOVE_PLAYER"
 	unoActionStartGame    = "START_GAME"
 	unoActionPlayCard     = "PLAY_CARD"
+	unoActionDrawCard     = "DRAW_CARD"
 
-	unoActionDataPlayerName = "PLAYER_NAME"
-	unoActionDataCardColor  = "CARD_COLOR"
-	unoActionDataCardNumber = "CARD_NUMBER"
+	unoActionDataPlayerName    = "PLAYER_NAME"
+	unoActionDataCardColor     = "CARD_COLOR"
+	unoActionDataCardNumber    = "CARD_NUMBER"
+	unoActionDataColorOverride = "COLOR_OVERRIDE"
 )
 
 type UnoAction struct {

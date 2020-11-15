@@ -24,9 +24,9 @@ type unoCard struct {
 	number string
 }
 
-func shuffleCards(cards []unoCard) []unoCard {
+func shuffleCards(cards []*unoCard) []*unoCard {
 	random := rand.New(rand.NewSource(time.Now().Unix()))
-	shuffledCards := make([]unoCard, len(cards))
+	shuffledCards := make([]*unoCard, len(cards))
 
 	for len(cards) > 0 {
 		randomCardIndex := random.Intn(len(cards))
@@ -37,22 +37,22 @@ func shuffleCards(cards []unoCard) []unoCard {
 	return shuffledCards
 }
 
-func generateUnoDeck() []unoCard {
-	cards := make([]unoCard, 108)
+func generateUnoDeck() []*unoCard {
+	cards := make([]*unoCard, 108)
 	colors := []string{unoColorRed, unoColorGreen, unoColorBlue, unoColorYellow}
 
 	for _, color := range colors {
-		cards = append(cards, unoCard{color, "0"})
+		cards = append(cards, &unoCard{color, "0"})
 		cardNumbers := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", unoSpecialCardPlusTwo, unoSpecialCardReverse, unoSpecialCardSkipTurn}
 
 		for _, cardNumber := range cardNumbers {
-			card := unoCard{color, cardNumber}
+			card := &unoCard{color, cardNumber}
 			cards = append(cards, card)
 		}
 	}
 
-	plusFourCard := unoCard{unoColorNoColor, unoSpecialCardPlusFour}
-	changeColorCard := unoCard{unoColorNoColor, unoSpecialCardChangeColor}
+	plusFourCard := &unoCard{unoColorNoColor, unoSpecialCardPlusFour}
+	changeColorCard := &unoCard{unoColorNoColor, unoSpecialCardChangeColor}
 
 	cards = append(cards, repeat(plusFourCard, 4)...)
 	cards = append(cards, repeat(changeColorCard, 4)...)
@@ -60,8 +60,8 @@ func generateUnoDeck() []unoCard {
 	return cards
 }
 
-func repeat(card unoCard, times int) []unoCard {
-	cards := make([]unoCard, times)
+func repeat(card *unoCard, times int) []*unoCard {
+	cards := make([]*unoCard, times)
 
 	for i := 0; i < times; i++ {
 		cards = append(cards, card)

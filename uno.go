@@ -16,9 +16,11 @@ const (
 type Uno struct {
 	state              string
 	players            []*unoPlayer
-	deck               []unoCard
-	pile               []unoCard
+	deck               []*unoCard
+	pile               []*unoCard
 	currentPlayerIndex int
+	playerOrder        int
+	colorOverride      string
 }
 
 func (uno *Uno) Update(action *UnoAction) *UnoUpdate {
@@ -35,7 +37,8 @@ func (uno *Uno) Update(action *UnoAction) *UnoUpdate {
 		playerName := action.GetDataString(unoActionDataPlayerName)
 		cardColor := action.GetDataString(unoActionDataCardColor)
 		cardNumber := action.GetDataString(unoActionDataCardNumber)
-		return uno.playCard(playerName, cardColor, cardNumber)
+		colorOverride := action.GetDataString(unoActionDataColorOverride)
+		return uno.playCard(playerName, cardColor, cardNumber, colorOverride)
 	}
 
 	return &UnoUpdate{}
@@ -50,7 +53,7 @@ func (uno *Uno) addPlayer(name string) *UnoUpdate {
 		return uno.ToErrorUpdate(fmt.Sprintf("Player %s already exists", name))
 	}
 
-	if len(uno.deck) < unoStartingCardsPerPlayer {
+	if len(uno.deck) < unoStartingCardsPerPlayer*2 {
 		return uno.ToErrorUpdate("Not enough cards for a new player")
 	}
 
@@ -69,6 +72,7 @@ func (uno *Uno) removePlayer(name string) *UnoUpdate {
 	}
 
 	uno.players = newPlayers
+	uno.currentPlayerIndex = uno.currentPlayerIndex + len(uno.players)
 
 	return uno.ToUpdate()
 }
@@ -80,17 +84,18 @@ func (uno *Uno) startGame() *UnoUpdate {
 
 	for i := 0; i < unoStartingCardsPerPlayer; i++ {
 		for _, player := range uno.players {
-			player.Draw(uno)
+			player.draw(uno.draw())
 		}
 	}
 
 	uno.currentPlayerIndex = rand.Intn(len(uno.players) - 1)
 	uno.state = unoStatePlaying
+	uno.placeCard(uno.draw())
 
 	return uno.ToUpdate()
 }
 
-func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string) *UnoUpdate {
+func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string, colorOverride string) *UnoUpdate {
 	// TODO quick-move
 
 	currentPlayer := uno.players[uno.currentPlayerIndex]
@@ -99,9 +104,76 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string)
 		return uno.ToErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
 	}
 
-	// TODO implement card play
+	card := currentPlayer.getCard(cardColor, cardNumber)
+
+	if card == nil {
+		return uno.ToErrorUpdate(fmt.Sprintf("Player does have card: %s %s", cardColor, cardNumber))
+	}
+
+	topCard := uno.getCurrentTopCard()
+
+	if card.color == unoColorNoColor || (topCard.color == unoColorNoColor && topCard.color == uno.colorOverride) || card.color == topCard.color || card.number == card.number {
+		uno.colorOverride = ""
+		uno.placeCard(card)
+		uno.resolveEffect(card, colorOverride)
+
+		uno.resolveCurrentPlayerIndex()
+	} else {
+		currentPlayer.draw(card)
+	}
 
 	return uno.ToUpdate()
+}
+
+func (uno *Uno) resolveCurrentPlayerIndex() {
+	for {
+		uno.currentPlayerIndex = uno.getNextPlayerIndex()
+
+		if uno.players[uno.currentPlayerIndex].turnsToSkip <= 0 {
+			break
+		} else {
+			uno.players[uno.currentPlayerIndex].turnsToSkip--
+		}
+	}
+}
+
+func (uno *Uno) resolveEffect(card *unoCard, colorOverride string) {
+	switch card.number {
+	case unoSpecialCardPlusTwo:
+		nextPlayer := uno.players[uno.getNextPlayerIndex()]
+
+		for i := 0; i < 2; i++ {
+			nextPlayer.draw(uno.draw())
+			nextPlayer.turnsToSkip++
+		}
+	case unoSpecialCardPlusFour:
+		nextPlayer := uno.players[uno.getNextPlayerIndex()]
+
+		for i := 0; i < 4; i++ {
+			nextPlayer.draw(uno.draw())
+			nextPlayer.turnsToSkip++
+		}
+
+		uno.colorOverride = colorOverride
+	case unoSpecialCardChangeColor:
+		uno.colorOverride = colorOverride
+	case unoSpecialCardSkipTurn:
+		uno.players[uno.getNextPlayerIndex()].turnsToSkip++
+	case unoSpecialCardReverse:
+		uno.playerOrder = -uno.playerOrder
+	}
+}
+
+func (uno *Uno) placeCard(card *unoCard) {
+	uno.pile = append(uno.pile, card)
+}
+
+func (uno *Uno) getCurrentTopCard() *unoCard {
+	return uno.pile[len(uno.pile)-1]
+}
+
+func (uno *Uno) getNextPlayerIndex() int {
+	return (uno.currentPlayerIndex + len(uno.players) + uno.playerOrder) % len(uno.players)
 }
 
 func (uno *Uno) hasPlayer(name string) bool {
@@ -116,14 +188,15 @@ func (uno *Uno) hasPlayer(name string) bool {
 
 func NewUno() *Uno {
 	return &Uno{
-		state:   unoStatePreparation,
-		players: []*unoPlayer{},
-		deck:    shuffleCards(generateUnoDeck()),
-		pile:    []unoCard{},
+		state:       unoStatePreparation,
+		players:     []*unoPlayer{},
+		deck:        shuffleCards(generateUnoDeck()),
+		pile:        []*unoCard{},
+		playerOrder: 1,
 	}
 }
 
-func (uno *Uno) draw() unoCard {
+func (uno *Uno) draw() *unoCard {
 	if len(uno.deck) <= 0 {
 		uno.deck = shuffleCards(uno.pile[:len(uno.pile)-1])
 		uno.pile = uno.pile[len(uno.pile)-1:]
