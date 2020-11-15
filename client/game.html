@@ -1,0 +1,18 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNO</title>
+</head>
+
+<body>
+  <pre><span>GameId:</span><span id="roomId"></span></pre>
+  <script>
+    window.roomId = location.pathname.match(/\/(\d+)\/?/)[1]
+
+    document.querySelector('#roomId').innerText = roomId
+  </script>
+</body>
+
+</html>
