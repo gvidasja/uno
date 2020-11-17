@@ -2,11 +2,25 @@ import "./types.js";
 import { openSocket } from "./io.js";
 import { GameScene } from "./gameObjects/GameScene.js";
 
+function getProtocol() {
+  switch (location.protocol) {
+    case "https:":
+      return "wss:";
+    case "http:":
+      return "ws:";
+    default:
+      throw new Error(`Unknown protocol: ${location.protocol}`);
+  }
+}
+
 const roomId = location.pathname.replace(/[^\d]/, "");
 
 const myName = localStorage.getItem("name") || prompt("Enter name");
 localStorage.setItem("name", myName);
-const socket = openSocket(`ws://${location.host}/ws/${roomId}`, myName);
+const socket = openSocket(
+  `${getProtocol()}//${location.host}/ws/${roomId}`,
+  myName,
+);
 
 const onAction = (action, data) => socket.send({ action, data });
 
