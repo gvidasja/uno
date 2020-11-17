@@ -4,19 +4,40 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	"github.com/gvidasja/uno/uno"
 )
 
 type Connection struct {
-	ws   *websocket.Conn
-	room *Room
-	send chan *UnoUpdate
+	ws     *websocket.Conn
+	room   *Room
+	send   chan *uno.UpdateForPlayer
+	player string
+}
+
+func (c *Connection) setPlayer(name string) {
+	c.player = name
 }
 
 func newConnection(ws *websocket.Conn, room *Room) *Connection {
 	return &Connection{
 		ws:   ws,
 		room: room,
-		send: make(chan *UnoUpdate),
+		send: make(chan *uno.UpdateForPlayer),
+	}
+}
+
+type Action struct {
+	Action     string                 `json:"action"`
+	Auth       string                 `json:"auth"`
+	Data       map[string]interface{} `json:"data"`
+	connection *Connection
+}
+
+func (action *Action) ToUnoAction() *uno.Action {
+	return &uno.Action{
+		Action: action.Action,
+		Data:   action.Data,
+		Player: action.Auth,
 	}
 }
 
@@ -43,8 +64,7 @@ func (c *Connection) readActions() {
 	}()
 
 	for {
-		action := &UnoAction{}
-
+		action := &Action{}
 		err := c.ws.ReadJSON(action)
 
 		if err != nil {
@@ -53,6 +73,8 @@ func (c *Connection) readActions() {
 		}
 
 		log.Println("Message received:", action)
+
+		action.connection = c
 
 		c.room.receive <- action
 	}

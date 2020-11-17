@@ -1,4 +1,4 @@
-package main
+package uno
 
 import (
 	"math/rand"
@@ -26,19 +26,17 @@ type unoCard struct {
 
 func shuffleCards(cards []*unoCard) []*unoCard {
 	random := rand.New(rand.NewSource(time.Now().Unix()))
-	shuffledCards := make([]*unoCard, len(cards))
+	shuffledCards := cards[:]
 
-	for len(cards) > 0 {
-		randomCardIndex := random.Intn(len(cards))
-		shuffledCards = append(shuffledCards, cards[randomCardIndex])
-		cards = append(cards[:randomCardIndex], cards[randomCardIndex+1:]...)
-	}
+	random.Shuffle(len(cards), func(i int, j int) {
+		shuffledCards[i], shuffledCards[j] = shuffledCards[j], shuffledCards[i]
+	})
 
 	return shuffledCards
 }
 
 func generateUnoDeck() []*unoCard {
-	cards := make([]*unoCard, 108)
+	cards := []*unoCard{}
 	colors := []string{unoColorRed, unoColorGreen, unoColorBlue, unoColorYellow}
 
 	for _, color := range colors {
@@ -47,7 +45,7 @@ func generateUnoDeck() []*unoCard {
 
 		for _, cardNumber := range cardNumbers {
 			card := &unoCard{color, cardNumber}
-			cards = append(cards, card)
+			cards = append(cards, repeat(card, 2)...)
 		}
 	}
 
@@ -64,7 +62,7 @@ func repeat(card *unoCard, times int) []*unoCard {
 	cards := make([]*unoCard, times)
 
 	for i := 0; i < times; i++ {
-		cards = append(cards, card)
+		cards[i] = card
 	}
 
 	return cards

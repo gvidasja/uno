@@ -1,4 +1,4 @@
-package main
+package uno
 
 const (
 	unoActionAddPlayer    = "ADD_PLAYER"
@@ -6,18 +6,30 @@ const (
 	unoActionStartGame    = "START_GAME"
 	unoActionPlayCard     = "PLAY_CARD"
 	unoActionDrawCard     = "DRAW_CARD"
+	unoActionEndTurn      = "END_TURN"
 
-	unoActionDataPlayerName    = "PLAYER_NAME"
 	unoActionDataCardColor     = "CARD_COLOR"
 	unoActionDataCardNumber    = "CARD_NUMBER"
 	unoActionDataColorOverride = "COLOR_OVERRIDE"
 )
 
-type UnoAction struct {
+// Action describes an action that can be performed in a game
+type Action struct {
 	Action string
+	Player string
 	Data   map[string]interface{}
 }
 
-func (action *UnoAction) GetDataString(key string) string {
-	return action.Data[key].(string)
+func (action *Action) getDataString(key string) string {
+	if action.Data == nil || action.Data[key] == nil {
+		return ""
+	}
+
+	value, ok := action.Data[key].(string)
+
+	if !ok {
+		return ""
+	}
+
+	return value
 }

@@ -1,9 +1,10 @@
-package main
+package uno
 
 type unoPlayer struct {
 	name        string
 	cards       []*unoCard
 	turnsToSkip int
+	cardsDrawn  int
 }
 
 func newPlayer(name string) *unoPlayer {

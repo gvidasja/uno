@@ -13,7 +13,7 @@ func main() {
 	rooms := make(map[string]*Room)
 	upgrader := websocket.Upgrader{}
 
-	http.HandleFunc("/ws", serveWs(upgrader, rooms))
+	http.HandleFunc("/ws/", serveWs(upgrader, rooms))
 	http.HandleFunc("/", serveHTTP())
 
 	err := http.ListenAndServe(":"+port, nil)

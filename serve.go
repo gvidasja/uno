@@ -48,10 +48,12 @@ func serveHTTP() http.HandlerFunc {
 }
 
 func serveWs(upgrader websocket.Upgrader, rooms map[string]*Room) http.HandlerFunc {
+	roomIDFinder := regexp.MustCompile("/ws/?(.*)")
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ws, err := upgrader.Upgrade(w, r, nil)
 
-		roomID := strings.TrimPrefix(r.URL.Path, "/ws/")
+		roomID := roomIDFinder.ReplaceAllString(r.URL.Path, "$1")
 
 		if len(roomID) == 0 {
 			http.Error(w, "Room id must be specified (e.g. /ws/69).", http.StatusBadRequest)

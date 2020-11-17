@@ -1,12 +1,15 @@
 package main
 
-import "log"
+import (
+	"log"
+
+	"github.com/gvidasja/uno/uno"
+)
 
 type Room struct {
 	ID          string
 	connections map[*Connection]bool
-	broadcast   chan *UnoUpdate
-	receive     chan *UnoAction
+	receive     chan *Action
 	connect     chan *Connection
 	disconnect  chan *Connection
 }
@@ -17,8 +20,7 @@ func newRoom(id string) *Room {
 		connections: make(map[*Connection]bool),
 		connect:     make(chan *Connection),
 		disconnect:  make(chan *Connection),
-		broadcast:   make(chan *UnoUpdate),
-		receive:     make(chan *UnoAction, 256),
+		receive:     make(chan *Action, 256),
 	}
 }
 
@@ -27,7 +29,7 @@ func (room *Room) IsEmpty() bool {
 }
 
 func (room *Room) run() {
-	uno := NewUno()
+	uno := uno.NewUno()
 
 	for {
 		select {
@@ -45,11 +47,11 @@ func (room *Room) run() {
 			}
 
 		case action := <-room.receive:
-			update := uno.Update(action)
-			room.broadcast <- update
-		case update := <-room.broadcast:
+			action.connection.player = action.Auth
+			update := uno.Update(action.ToUnoAction())
+
 			for c := range room.connections {
-				c.send <- update
+				c.send <- update.ForPlayer(c.player)
 			}
 		}
 	}

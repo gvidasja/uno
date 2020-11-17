@@ -1,4 +1,4 @@
-package main
+package uno
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ const (
 	unoStartingCardsPerPlayer = 7
 )
 
+// Uno describes an UNO game
 type Uno struct {
 	state              string
 	players            []*unoPlayer
@@ -23,47 +24,49 @@ type Uno struct {
 	colorOverride      string
 }
 
-func (uno *Uno) Update(action *UnoAction) *UnoUpdate {
+// Update performs an action on Uno game
+func (uno *Uno) Update(action *Action) *Update {
 	switch action.Action {
 	case unoActionAddPlayer:
-		playerName := action.GetDataString(unoActionDataPlayerName)
-		return uno.addPlayer(playerName)
+		return uno.addPlayer(action.Player)
 	case unoActionRemovePlayer:
-		playerName := action.GetDataString(unoActionDataPlayerName)
-		return uno.removePlayer(playerName)
+		return uno.removePlayer(action.Player)
 	case unoActionStartGame:
 		return uno.startGame()
 	case unoActionPlayCard:
-		playerName := action.GetDataString(unoActionDataPlayerName)
-		cardColor := action.GetDataString(unoActionDataCardColor)
-		cardNumber := action.GetDataString(unoActionDataCardNumber)
-		colorOverride := action.GetDataString(unoActionDataColorOverride)
-		return uno.playCard(playerName, cardColor, cardNumber, colorOverride)
+		cardColor := action.getDataString(unoActionDataCardColor)
+		cardNumber := action.getDataString(unoActionDataCardNumber)
+		colorOverride := action.getDataString(unoActionDataColorOverride)
+		return uno.playCard(action.Player, cardColor, cardNumber, colorOverride)
+	case unoActionDrawCard:
+		return uno.drawCard(action.Player)
+	case unoActionEndTurn:
 	}
 
-	return &UnoUpdate{}
+	return uno.toErrorUpdate(fmt.Sprint("Unknown action", action.Action))
 }
 
-func (uno *Uno) addPlayer(name string) *UnoUpdate {
-	if uno.state != unoStatePreparation {
-		return uno.ToErrorUpdate("Cannot add player to started game")
+func (uno *Uno) addPlayer(name string) *Update {
+	if uno.state != unoStatePreparation && !uno.hasPlayer(name) {
+		return uno.toErrorUpdate("Cannot add a new player to started game")
 	}
 
 	if uno.hasPlayer(name) {
-		return uno.ToErrorUpdate(fmt.Sprintf("Player %s already exists", name))
+		// return uno.ToErrorUpdate(fmt.Sprintf("Player %s already exists", name))
+		return uno.toUpdate()
 	}
 
-	if len(uno.deck) < unoStartingCardsPerPlayer*2 {
-		return uno.ToErrorUpdate("Not enough cards for a new player")
+	if unoStartingCardsPerPlayer*(len(uno.players)+1) > 108 {
+		return uno.toErrorUpdate("Not enough cards for a new player")
 	}
 
 	uno.players = append(uno.players, newPlayer(name))
 
-	return uno.ToUpdate()
+	return uno.toUpdate()
 }
 
-func (uno *Uno) removePlayer(name string) *UnoUpdate {
-	newPlayers := make([]*unoPlayer, len(uno.players))
+func (uno *Uno) removePlayer(name string) *Update {
+	newPlayers := []*unoPlayer{}
 
 	for _, player := range uno.players {
 		if player.name != name {
@@ -74,12 +77,22 @@ func (uno *Uno) removePlayer(name string) *UnoUpdate {
 	uno.players = newPlayers
 	uno.currentPlayerIndex = uno.currentPlayerIndex + len(uno.players)
 
-	return uno.ToUpdate()
+	return uno.toUpdate()
 }
 
-func (uno *Uno) startGame() *UnoUpdate {
+func (uno *Uno) startGame() *Update {
 	if len(uno.players) <= 0 {
-		return uno.ToErrorUpdate("Cannot start a game with no players")
+		return uno.toErrorUpdate("Cannot start a game with no players")
+	}
+
+	if uno.state != unoStatePreparation {
+		return uno.toErrorUpdate("Only games in 'PREPARATION' state can be started")
+	}
+
+	uno.deck = shuffleCards(generateUnoDeck())
+
+	for _, player := range uno.players {
+		player.cards = []*unoCard{}
 	}
 
 	for i := 0; i < unoStartingCardsPerPlayer; i++ {
@@ -92,27 +105,27 @@ func (uno *Uno) startGame() *UnoUpdate {
 	uno.state = unoStatePlaying
 	uno.placeCard(uno.draw())
 
-	return uno.ToUpdate()
+	return uno.toUpdate()
 }
 
-func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string, colorOverride string) *UnoUpdate {
+func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string, colorOverride string) *Update {
 	// TODO quick-move
 
 	currentPlayer := uno.players[uno.currentPlayerIndex]
 
 	if currentPlayer.name != playerName {
-		return uno.ToErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
+		return uno.toErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
 	}
 
 	card := currentPlayer.getCard(cardColor, cardNumber)
 
 	if card == nil {
-		return uno.ToErrorUpdate(fmt.Sprintf("Player does have card: %s %s", cardColor, cardNumber))
+		return uno.toErrorUpdate(fmt.Sprintf("Player does have card: %s %s", cardColor, cardNumber))
 	}
 
 	topCard := uno.getCurrentTopCard()
 
-	if card.color == unoColorNoColor || (topCard.color == unoColorNoColor && topCard.color == uno.colorOverride) || card.color == topCard.color || card.number == card.number {
+	if (card.color == unoColorNoColor) || (topCard.color == unoColorNoColor && card.color == uno.colorOverride) || (card.color == topCard.color) || (card.number == topCard.number) {
 		uno.colorOverride = ""
 		uno.placeCard(card)
 		uno.resolveEffect(card, colorOverride)
@@ -122,7 +135,25 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 		currentPlayer.draw(card)
 	}
 
-	return uno.ToUpdate()
+	return uno.toUpdate()
+}
+
+func (uno *Uno) drawCard(playerName string) *Update {
+	currentPlayer := uno.players[uno.currentPlayerIndex]
+
+	if currentPlayer.name != playerName {
+		return uno.toErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
+	}
+
+	if currentPlayer.cardsDrawn >= 1 {
+		currentPlayer.cardsDrawn = 0
+		uno.resolveCurrentPlayerIndex()
+	} else {
+		currentPlayer.cardsDrawn++
+		currentPlayer.draw(uno.draw())
+	}
+
+	return uno.toUpdate()
 }
 
 func (uno *Uno) resolveCurrentPlayerIndex() {
@@ -144,16 +175,15 @@ func (uno *Uno) resolveEffect(card *unoCard, colorOverride string) {
 
 		for i := 0; i < 2; i++ {
 			nextPlayer.draw(uno.draw())
-			nextPlayer.turnsToSkip++
 		}
+		nextPlayer.turnsToSkip++
 	case unoSpecialCardPlusFour:
 		nextPlayer := uno.players[uno.getNextPlayerIndex()]
 
 		for i := 0; i < 4; i++ {
 			nextPlayer.draw(uno.draw())
-			nextPlayer.turnsToSkip++
 		}
-
+		nextPlayer.turnsToSkip++
 		uno.colorOverride = colorOverride
 	case unoSpecialCardChangeColor:
 		uno.colorOverride = colorOverride
@@ -176,21 +206,26 @@ func (uno *Uno) getNextPlayerIndex() int {
 	return (uno.currentPlayerIndex + len(uno.players) + uno.playerOrder) % len(uno.players)
 }
 
-func (uno *Uno) hasPlayer(name string) bool {
+func (uno *Uno) getPlayer(name string) *unoPlayer {
 	for _, player := range uno.players {
 		if player.name == name {
-			return true
+			return player
 		}
 	}
 
-	return false
+	return nil
 }
 
+func (uno *Uno) hasPlayer(name string) bool {
+	return uno.getPlayer(name) != nil
+}
+
+// NewUno creates a new Uno instance
 func NewUno() *Uno {
 	return &Uno{
 		state:       unoStatePreparation,
 		players:     []*unoPlayer{},
-		deck:        shuffleCards(generateUnoDeck()),
+		deck:        []*unoCard{},
 		pile:        []*unoCard{},
 		playerOrder: 1,
 	}
