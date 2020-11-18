@@ -101,7 +101,8 @@ export class GameScene {
             y: middleY - Card.SIZE_Y / 2,
             topCard: new Card(
               {
-                color: state.globalState.topCard.color,
+                color: state.globalState.colorOverride ||
+                  state.globalState.topCard.color,
                 number: state.globalState.topCard.number,
               },
             ),
