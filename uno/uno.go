@@ -131,6 +131,8 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 		uno.resolveEffect(card, colorOverride)
 
 		uno.resolveCurrentPlayerIndex()
+
+		currentPlayer.canDrawCard = true
 	} else {
 		currentPlayer.draw(card)
 	}
@@ -145,12 +147,12 @@ func (uno *Uno) drawCard(playerName string) *Update {
 		return uno.toErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
 	}
 
-	if currentPlayer.cardsDrawn >= 1 {
-		currentPlayer.cardsDrawn = 0
-		uno.resolveCurrentPlayerIndex()
-	} else {
-		currentPlayer.cardsDrawn++
+	if currentPlayer.canDrawCard {
 		currentPlayer.draw(uno.draw())
+		currentPlayer.canDrawCard = false
+	} else {
+		currentPlayer.canDrawCard = true
+		uno.resolveCurrentPlayerIndex()
 	}
 
 	return uno.toUpdate()
@@ -190,7 +192,11 @@ func (uno *Uno) resolveEffect(card *unoCard, colorOverride string) {
 	case unoSpecialCardSkipTurn:
 		uno.players[uno.getNextPlayerIndex()].turnsToSkip++
 	case unoSpecialCardReverse:
-		uno.playerOrder = -uno.playerOrder
+		if len(uno.players) <= 2 {
+			uno.players[uno.getNextPlayerIndex()].turnsToSkip++
+		} else {
+			uno.playerOrder = -uno.playerOrder
+		}
 	}
 }
 

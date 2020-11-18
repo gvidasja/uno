@@ -4,7 +4,7 @@ type unoPlayer struct {
 	name        string
 	cards       []*unoCard
 	turnsToSkip int
-	cardsDrawn  int
+	canDrawCard bool
 }
 
 func newPlayer(name string) *unoPlayer {
