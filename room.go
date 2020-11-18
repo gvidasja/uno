@@ -48,10 +48,10 @@ func (room *Room) run() {
 
 		case action := <-room.receive:
 			action.connection.player = action.Auth
-			update := uno.Update(action.ToUnoAction())
-
-			for c := range room.connections {
-				c.send <- update.ForPlayer(c.player)
+			if update := uno.Update(action.ToUnoAction()); update != nil {
+				for c := range room.connections {
+					c.send <- update.ForPlayer(c.player)
+				}
 			}
 		}
 	}

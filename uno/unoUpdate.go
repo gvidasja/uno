@@ -115,3 +115,8 @@ func (update *Update) ForPlayer(name string) *UpdateForPlayer {
 		Me:          me,
 	}
 }
+
+// Noop generate update that should not be sent
+func (uno *Uno) Noop() *Update {
+	return nil
+}

@@ -114,7 +114,7 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 	currentPlayer := uno.players[uno.currentPlayerIndex]
 
 	if currentPlayer.name != playerName {
-		return uno.toErrorUpdate(fmt.Sprintf("It's currently the turn of player %s", currentPlayer.name))
+		return uno.Noop()
 	}
 
 	card := currentPlayer.getCard(cardColor, cardNumber)
