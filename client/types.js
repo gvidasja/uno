@@ -8,6 +8,7 @@
  *    name: string
  *    turn: boolean
  *    handSize: number
+ *    winner?: boolean,
  *  }} UnoPlayer
  * 
  * @typedef {{
@@ -21,5 +22,5 @@
  *      topCard?: UnoCard,
  *      colorOverride?: string,
  *      errors?: string[]
- *  }} UnoState 
+ *  }} UnoState
  * */

@@ -10,6 +10,7 @@ type UpdatePlayer struct {
 	Name     string `json:"name"`
 	Turn     bool   `json:"turn"`
 	HandSize int    `json:"handSize"`
+	Winner   bool   `json:"winner"`
 }
 
 // UpdateCard is a card DTO
@@ -34,14 +35,8 @@ type Update struct {
 	TopCard       *UpdateCard     `json:"topCard"`
 	ColorOverride string          `json:"colorOverride"`
 	Errors        []string        `json:"errors"`
+	Winner        *unoPlayer      `json:"winner"`
 	uno           *Uno
-}
-
-func (uno *Uno) toErrorUpdate(msg string) *Update {
-	return &Update{
-		Errors: []string{msg},
-		uno:    uno,
-	}
 }
 
 func (uno *Uno) toUpdate() *Update {
@@ -52,6 +47,7 @@ func (uno *Uno) toUpdate() *Update {
 			Name:     player.name,
 			HandSize: len(player.cards),
 			Turn:     index == uno.currentPlayerIndex,
+			Winner:   uno.winner != nil && player.name == uno.winner.name,
 		})
 	}
 

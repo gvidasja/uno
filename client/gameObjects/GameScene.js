@@ -1,3 +1,4 @@
+import "../types.js";
 import { Player } from "./Player.js";
 import { Deck } from "./Deck.js";
 import { Card } from "./Card.js";
@@ -43,6 +44,7 @@ export class GameScene {
         ...playersZone,
         players: state.globalState.players,
         me: state.me,
+        winner: state.globalState.winner,
       });
 
       const hand = createHand({
@@ -71,7 +73,9 @@ export class GameScene {
   }
 }
 
-function createPlayers({ players: statePlayers, me, x, y, width, height }) {
+function createPlayers(
+  { players: statePlayers, me, x, y, width, height, winner },
+) {
   if (statePlayers && statePlayers.length > 0) {
     const middleX = x + width / 2;
     const middleY = y + height / 2;
@@ -85,7 +89,7 @@ function createPlayers({ players: statePlayers, me, x, y, width, height }) {
     const distanceFromCenterX = Math.min(width / 2 * 0.8, 250);
     const distanceFromCenterY = Math.min(height / 2 * 0.8, 200);
 
-    const players = statePlayers.map((x, i) =>
+    const players = statePlayers.flatMap((x, i) =>
       new Player({
         x: middleX +
           Math.cos(Math.PI / 2 + i * playerEveryRad) * distanceFromCenterX -
@@ -96,6 +100,7 @@ function createPlayers({ players: statePlayers, me, x, y, width, height }) {
         handSize: x.handSize,
         name: x.name,
         turn: x.turn,
+        winner: x.winner,
       })
     );
     return players;
@@ -126,6 +131,21 @@ function createHand({ hand, x, y, width, height, onAction }) {
       number: x.number,
     });
 
+    const toColor = (letter = "R") => {
+      switch (letter.toUpperCase()) {
+        case "R":
+          return "RED";
+        case "Ž":
+          return "GREEN";
+        case "G":
+          return "YELLOW";
+        case "M":
+          return "BLUE";
+        default:
+          return "RED";
+      }
+    };
+
     card.addClickHandler((card) =>
       onAction(
         "PLAY_CARD",
@@ -133,9 +153,9 @@ function createHand({ hand, x, y, width, height, onAction }) {
           CARD_COLOR: card.color,
           CARD_NUMBER: card.number,
           COLOR_OVERRIDE: card.shouldChooseOverride()
-            ? prompt(
-              "Enter 'RED', 'GREEN', 'YELLOW', 'BLUE'",
-            )
+            ? toColor(prompt(
+              "R G Ž M",
+            ))
             : null,
         },
       )

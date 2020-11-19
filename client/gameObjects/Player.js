@@ -20,6 +20,7 @@ export class Player extends GameObject {
       name,
       handSize,
       turn,
+      winner,
     },
   ) {
     super({ x, y, sizeX, sizeY });
@@ -27,6 +28,7 @@ export class Player extends GameObject {
     this.name = name;
     this.handSize = handSize;
     this.turn = turn;
+    this.winner = winner;
   }
 
   draw(g) {
@@ -58,6 +60,17 @@ export class Player extends GameObject {
       this.sizeY - this.sizeX,
       text,
       textColor,
+    );
+
+    this.winner && drawText(
+      g,
+      this.x,
+      this.y,
+      this.sizeX,
+      this.sizeX,
+      "WINNER",
+      "black",
+      "30px Arial",
     );
   }
 }
