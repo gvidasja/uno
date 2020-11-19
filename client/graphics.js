@@ -32,6 +32,15 @@ export function drawCircle(g, xCenter, yCenter, diameter, backgrounColor) {
 }
 
 /** @param {CanvasRenderingContext2D} g */
+export function drawEllipse(g, xCenter, yCenter, sizeX, sizeY, backgrounColor) {
+  g.fillStyle = backgrounColor;
+  g.beginPath();
+  g.ellipse(xCenter, yCenter, sizeX / 2, sizeY / 2, 0, 0, Math.PI * 2);
+  g.closePath();
+  g.fill();
+}
+
+/** @param {CanvasRenderingContext2D} g */
 export function drawRect(g, x, y, sizeX, sizeY, backgroundColor = "white") {
   g.fillStyle = backgroundColor;
   g.fillRect(x, y, sizeX, sizeY);
