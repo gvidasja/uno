@@ -1,22 +1,22 @@
 package uno
 
-func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string, colorOverride string) *Update {
+func (uno *Uno) playCard(playerId string, cardColor string, cardNumber string, colorOverride string) *Update {
 	// TODO quick-move
 
 	if uno.state != unoStatePlaying {
-		return uno.Noop()
+		return uno.toUpdate()
 	}
 
 	currentPlayer := uno.players[uno.currentPlayerIndex]
 
-	if currentPlayer.name != playerName {
-		return uno.Noop()
+	if currentPlayer.id != playerId {
+		return uno.toUpdate()
 	}
 
 	card := currentPlayer.getCard(cardColor, cardNumber)
 
 	if card == nil {
-		return uno.Noop()
+		return uno.toUpdate()
 	}
 
 	topCard := uno.getCurrentTopCard()
@@ -24,6 +24,7 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 	if (card.color == unoColorNoColor) || (topCard.color == unoColorNoColor && card.color == uno.colorOverride) || (card.color == topCard.color) || (card.number == topCard.number) {
 		uno.colorOverride = ""
 		uno.placeCard(card)
+		uno.checkIfUnoWasCalled()
 		uno.resolveEffect(card, colorOverride)
 
 		uno.resolveCurrentPlayerIndex()
@@ -35,7 +36,8 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 
 	if len(currentPlayer.cards) == 0 {
 		uno.state = unoStateFinished
-		uno.winner = currentPlayer
+		uno.winners = append(uno.winners, currentPlayer)
+		uno.players, _ = uno.players.remove(currentPlayer.id)
 	}
 
 	return uno.toUpdate()
@@ -43,14 +45,14 @@ func (uno *Uno) playCard(playerName string, cardColor string, cardNumber string,
 
 func (uno *Uno) resolveEffect(card *unoCard, colorOverride string) {
 	switch card.number {
-	case unoSpecialCardPlusTwo:
+	case unoNumberPlusTwo:
 		nextPlayer := uno.players[uno.getNextPlayerIndex()]
 
 		for i := 0; i < 2; i++ {
 			nextPlayer.draw(uno.draw())
 		}
 		nextPlayer.turnsToSkip++
-	case unoSpecialCardPlusFour:
+	case unoNumberPlusFour:
 		nextPlayer := uno.players[uno.getNextPlayerIndex()]
 
 		for i := 0; i < 4; i++ {
@@ -58,15 +60,24 @@ func (uno *Uno) resolveEffect(card *unoCard, colorOverride string) {
 		}
 		nextPlayer.turnsToSkip++
 		uno.colorOverride = colorOverride
-	case unoSpecialCardChangeColor:
+	case unoNumberChangeColor:
 		uno.colorOverride = colorOverride
-	case unoSpecialCardSkipTurn:
+	case unoNumberSkipTurn:
 		uno.players[uno.getNextPlayerIndex()].turnsToSkip++
-	case unoSpecialCardReverse:
+	case unoNumberReverse:
 		if len(uno.players) <= 2 {
 			uno.players[uno.getNextPlayerIndex()].turnsToSkip++
 		} else {
 			uno.playerOrder = -uno.playerOrder
 		}
+	}
+}
+
+func (uno *Uno) checkIfUnoWasCalled() {
+	currentPlayer := uno.players[uno.currentPlayerIndex]
+
+	if len(currentPlayer.cards) == 1 && !currentPlayer.calledUno {
+		currentPlayer.draw(uno.draw())
+		currentPlayer.draw(uno.draw())
 	}
 }

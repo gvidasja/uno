@@ -1,15 +1,19 @@
 package uno
 
 type unoPlayer struct {
-	name        string
-	cards       []*unoCard
+	id    string
+	index int
+	cards []*unoCard
+
 	turnsToSkip int
 	canDrawCard bool
+	calledUno   bool
+	out         bool
 }
 
-func newPlayer(name string) *unoPlayer {
+func newPlayer(id string) *unoPlayer {
 	return &unoPlayer{
-		name:        name,
+		id:          id,
 		cards:       []*unoCard{},
 		turnsToSkip: 0,
 	}

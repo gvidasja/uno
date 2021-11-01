@@ -1,4 +1,4 @@
-export function openSocket(url, auth) {
+export function openSocket(url) {
   const ws = new WebSocket(url);
 
   const openWs = new Promise((resolve, reject) => {
@@ -9,7 +9,7 @@ export function openSocket(url, auth) {
   return {
     async send(message) {
       await openWs;
-      ws.send(JSON.stringify({ ...message, auth }));
+      ws.send(JSON.stringify(message));
     },
 
     subscribe(messageHandler) {

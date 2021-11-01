@@ -3,14 +3,14 @@ export function drawRectWithText(
   g,
   x,
   y,
-  sizeX,
-  sizeY,
+  width,
+  height,
   text,
   backgroundColor = "white",
   textColor = "black",
 ) {
-  drawRect(g, x, y, sizeX, sizeY, backgroundColor);
-  drawText(g, x, y, sizeX, sizeY, text, textColor);
+  drawRect(g, x, y, width, height, backgroundColor);
+  drawText(g, x, y, width, height, text, textColor);
 }
 
 /** @param {CanvasRenderingContext2D} g */
@@ -32,18 +32,18 @@ export function drawCircle(g, xCenter, yCenter, diameter, backgrounColor) {
 }
 
 /** @param {CanvasRenderingContext2D} g */
-export function drawEllipse(g, xCenter, yCenter, sizeX, sizeY, backgrounColor) {
+export function drawEllipse(g, xCenter, yCenter, width, height, backgrounColor) {
   g.fillStyle = backgrounColor;
   g.beginPath();
-  g.ellipse(xCenter, yCenter, sizeX / 2, sizeY / 2, 0, 0, Math.PI * 2);
+  g.ellipse(xCenter, yCenter, width / 2, height / 2, 0, 0, Math.PI * 2);
   g.closePath();
   g.fill();
 }
 
 /** @param {CanvasRenderingContext2D} g */
-export function drawRect(g, x, y, sizeX, sizeY, backgroundColor = "white") {
+export function drawRect(g, x, y, width, height, backgroundColor = "white") {
   g.fillStyle = backgroundColor;
-  g.fillRect(x, y, sizeX, sizeY);
+  g.fillRect(x, y, width, height);
 }
 
 /** @param {CanvasRenderingContext2D} g */
@@ -51,8 +51,8 @@ export function drawText(
   g,
   x,
   y,
-  sizeX,
-  sizeY,
+  width,
+  height,
   text,
   textColor = "black",
   font = "14px Arial",
@@ -63,7 +63,7 @@ export function drawText(
   g.fillStyle = textColor;
   g.fillText(
     text,
-    x + sizeX / 2,
-    y + sizeY / 2,
+    x + width / 2,
+    y + height / 2,
   );
 }

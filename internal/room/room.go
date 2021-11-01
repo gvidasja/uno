@@ -1,25 +1,25 @@
-package main
+package room
 
 import (
 	"log"
 
-	"github.com/gvidasja/uno/uno"
+	"github.com/gvidasja/uno/internal/uno"
 )
 
 type Room struct {
 	ID          string
-	connections map[*Connection]bool
+	connections map[*connection]bool
 	receive     chan *Action
-	connect     chan *Connection
-	disconnect  chan *Connection
+	connect     chan *connection
+	disconnect  chan *connection
 }
 
-func newRoom(id string) *Room {
+func New(id string) *Room {
 	return &Room{
 		ID:          id,
-		connections: make(map[*Connection]bool),
-		connect:     make(chan *Connection),
-		disconnect:  make(chan *Connection),
+		connections: make(map[*connection]bool),
+		connect:     make(chan *connection),
+		disconnect:  make(chan *connection),
 		receive:     make(chan *Action, 256),
 	}
 }
@@ -45,12 +45,10 @@ func (room *Room) run() {
 				log.Println("Room", room.ID, "empty, stopping")
 				break
 			}
-
 		case action := <-room.receive:
-			action.connection.player = action.Auth
 			if update := uno.Execute(action.ToUnoAction()); update != nil {
 				for c := range room.connections {
-					c.send <- update.ForPlayer(c.player)
+					c.send <- update.ForPlayer(c.sessionId)
 				}
 			}
 		}

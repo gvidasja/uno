@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"fmt"
@@ -9,10 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/gvidasja/uno/internal/room"
 )
 
-func serveHTTP() http.HandlerFunc {
+func ServeHTTP() http.HandlerFunc {
 	idMatcher, err := regexp.Compile("^/(\\d+)/?$")
 
 	if err != nil {
@@ -20,6 +22,8 @@ func serveHTTP() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		setSessionCookie(w, r)
+
 		redirectToRoom := func(id string) {
 			http.Redirect(w, r, fmt.Sprintf("/%s", id), http.StatusSeeOther)
 		}
@@ -47,11 +51,18 @@ func serveHTTP() http.HandlerFunc {
 	}
 }
 
-func serveWs(upgrader websocket.Upgrader, rooms map[string]*Room) http.HandlerFunc {
+func ServeWs(upgrader websocket.Upgrader, rooms map[string]*room.Room) http.HandlerFunc {
 	roomIDFinder := regexp.MustCompile("/ws/?(.*)")
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		cookie := setSessionCookie(w, r)
+
 		ws, err := upgrader.Upgrade(w, r, nil)
+
+		if err != nil {
+			log.Println("Could not upgrade", r, err)
+			return
+		}
 
 		roomID := roomIDFinder.ReplaceAllString(r.URL.Path, "$1")
 
@@ -60,23 +71,35 @@ func serveWs(upgrader websocket.Upgrader, rooms map[string]*Room) http.HandlerFu
 			return
 		}
 
-		if rooms[roomID] == nil || rooms[roomID].IsEmpty() {
-			room := newRoom(roomID)
+		if room, ok := rooms[roomID]; !ok || room.IsEmpty() {
+			room := room.New(roomID)
 			go room.run()
 			rooms[roomID] = room
 		}
 
 		room := rooms[roomID]
 
-		if err != nil {
-			log.Println("Could not upgrade", r, err)
-			return
-		}
-
-		c := newConnection(ws, room)
+		c := newConnection(ws, room, cookie)
 		room.connect <- c
 
 		go c.writeUpdates()
 		go c.readActions()
 	}
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request) string {
+	var cookieValue string
+
+	if cookie, err := r.Cookie("session"); err != nil || cookie == nil {
+		cookieValue = uuid.NewString()
+
+		http.SetCookie(w, &http.Cookie{
+			Name:  "session",
+			Value: cookieValue,
+		})
+	} else {
+		cookieValue = cookie.Value
+	}
+
+	return cookieValue
 }

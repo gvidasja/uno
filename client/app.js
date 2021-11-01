@@ -54,10 +54,18 @@ socket.subscribe((message) => {
 });
 
 socket.send(
-  { action: "ADD_PLAYER", data: { PLAYER_NAME: myName } },
+  { action: "ADD_PLAYER" },
 );
 
 document.getElementById("start-game").addEventListener(
   "click",
   () => socket.send({ action: "START_GAME" }),
 );
+
+document.getElementById('change-name').addEventListener('click', () => {
+  const oldName = localStorage.getItem('name', newName)
+  const newName = prompt("Enter name")
+  localStorage.setItem('name', newName)
+
+  socket.send({ action: 'RENAME_PLAYER', data: { PLAYER_NAME: newName }})
+})

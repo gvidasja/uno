@@ -7,7 +7,7 @@ import (
 
 // UpdatePlayer is a player DTO
 type UpdatePlayer struct {
-	Name     string `json:"name"`
+	Id       string `json:"id"`
 	Turn     bool   `json:"turn"`
 	HandSize int    `json:"handSize"`
 	Winner   bool   `json:"winner"`
@@ -35,19 +35,24 @@ type Update struct {
 	TopCard       *UpdateCard     `json:"topCard"`
 	ColorOverride string          `json:"colorOverride"`
 	Errors        []string        `json:"errors"`
-	Winner        *unoPlayer      `json:"winner"`
+	Winner        *UpdatePlayer   `json:"winner"`
 	uno           *Uno
 }
 
 func (uno *Uno) toUpdate() *Update {
 	players := []*UpdatePlayer{}
 
-	for index, player := range uno.players {
+	allPlayers := append(uno.players, uno.winners...)
+	sort.Slice(allPlayers, func(i int, j int) bool {
+		return allPlayers[i].index < allPlayers[j].index
+	})
+
+	for index, player := range allPlayers {
 		players = append(players, &UpdatePlayer{
-			Name:     player.name,
+			Id:       player.id,
 			HandSize: len(player.cards),
 			Turn:     index == uno.currentPlayerIndex,
-			Winner:   uno.winner != nil && player.name == uno.winner.name,
+			Winner:   uno.winners.has(player.id),
 		})
 	}
 
@@ -75,19 +80,21 @@ func (uno *Uno) toUpdate() *Update {
 }
 
 // ForPlayer wraps an update DTO with player-specific info
-func (update *Update) ForPlayer(name string) *UpdateForPlayer {
+func (update *Update) ForPlayer(id string) *UpdateForPlayer {
 	hand := []*UpdateCard{}
-	player := update.uno.getPlayer(name)
+	player := update.uno.players.get(id)
 
-	if player == nil || player.cards == nil {
-		panic(fmt.Sprint("Player does not exist:", name))
+	if player == nil || player.cards == nil && !update.uno.winners.has(id) {
+		panic(fmt.Sprint("Player does not exist:", id))
 	}
 
-	for _, card := range player.cards {
-		hand = append(hand, &UpdateCard{
-			Color:  card.color,
-			Number: card.number,
-		})
+	if !update.uno.winners.has(id) {
+		for _, card := range player.cards {
+			hand = append(hand, &UpdateCard{
+				Color:  card.color,
+				Number: card.number,
+			})
+		}
 	}
 
 	sort.Slice(hand, func(i int, j int) bool {
@@ -99,7 +106,7 @@ func (update *Update) ForPlayer(name string) *UpdateForPlayer {
 	var me *UpdatePlayer
 
 	for _, player := range update.Players {
-		if player.Name == name {
+		if player.Id == id {
 			me = player
 			break
 		}
@@ -110,9 +117,4 @@ func (update *Update) ForPlayer(name string) *UpdateForPlayer {
 		Hand:        hand,
 		Me:          me,
 	}
-}
-
-// Noop generate update that should not be sent
-func (uno *Uno) Noop() *Update {
-	return nil
 }

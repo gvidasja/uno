@@ -3,12 +3,12 @@ package uno
 import "math/rand"
 
 func (uno *Uno) startGame() *Update {
-	if len(uno.players) <= 0 {
-		return uno.Noop()
+	if len(uno.players) <= 1 {
+		return uno.toUpdate()
 	}
 
 	if uno.state != unoStatePreparation {
-		return uno.Noop()
+		return uno.toUpdate()
 	}
 
 	uno.deck = shuffleCards(generateUnoDeck())
@@ -23,7 +23,7 @@ func (uno *Uno) startGame() *Update {
 		}
 	}
 
-	uno.winner = nil
+	uno.winners = Players{}
 	uno.currentPlayerIndex = rand.Intn(len(uno.players) - 1)
 	uno.state = unoStatePlaying
 	uno.placeCard(uno.draw())

@@ -1,14 +1,14 @@
 package uno
 
-func (uno *Uno) drawCard(playerName string) *Update {
+func (uno *Uno) drawCard(playerId string) *Update {
 	if uno.state != unoStatePlaying {
-		return uno.Noop()
+		return uno.toUpdate()
 	}
 
 	currentPlayer := uno.players[uno.currentPlayerIndex]
 
-	if currentPlayer.name != playerName {
-		return uno.Noop()
+	if currentPlayer.id != playerId || currentPlayer.out {
+		return uno.toUpdate()
 	}
 
 	if currentPlayer.canDrawCard {

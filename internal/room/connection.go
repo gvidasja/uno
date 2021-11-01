@@ -1,47 +1,43 @@
-package main
+package room
 
 import (
 	"log"
 
 	"github.com/gorilla/websocket"
-	"github.com/gvidasja/uno/uno"
+	"github.com/gvidasja/uno/internal/uno"
 )
 
-type Connection struct {
-	ws     *websocket.Conn
-	room   *Room
-	send   chan *uno.UpdateForPlayer
-	player string
+type connection struct {
+	ws        *websocket.Conn
+	room      *Room
+	send      chan *uno.UpdateForPlayer
+	sessionId string
 }
 
-func (c *Connection) setPlayer(name string) {
-	c.player = name
-}
-
-func newConnection(ws *websocket.Conn, room *Room) *Connection {
-	return &Connection{
-		ws:   ws,
-		room: room,
-		send: make(chan *uno.UpdateForPlayer),
+func newConnection(ws *websocket.Conn, room *Room, sessionId string) *connection {
+	return &connection{
+		ws:        ws,
+		room:      room,
+		sessionId: sessionId,
+		send:      make(chan *uno.UpdateForPlayer),
 	}
 }
 
 type Action struct {
 	Action     string                 `json:"action"`
-	Auth       string                 `json:"auth"`
 	Data       map[string]interface{} `json:"data"`
-	connection *Connection
+	connection *connection
 }
 
 func (action *Action) ToUnoAction() *uno.Action {
 	return &uno.Action{
-		Action: action.Action,
+		Action: uno.UnoAction(action.Action),
 		Data:   action.Data,
-		Player: action.Auth,
+		Player: action.connection.sessionId,
 	}
 }
 
-func (c *Connection) writeUpdates() {
+func (c *connection) writeUpdates() {
 	defer c.ws.Close()
 
 	for {
@@ -57,7 +53,7 @@ func (c *Connection) writeUpdates() {
 	}
 }
 
-func (c *Connection) readActions() {
+func (c *connection) readActions() {
 	defer func() {
 		c.room.disconnect <- c
 		c.ws.Close()

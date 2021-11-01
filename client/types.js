@@ -5,7 +5,7 @@
  *  }} UnoCard
  * 
  * @typedef {{
- *    name: string
+ *    id: string
  *    turn: boolean
  *    handSize: number
  *    winner?: boolean,
